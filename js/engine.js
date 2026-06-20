@@ -167,7 +167,7 @@ function setupSceneSwipe() {
    Finger lands at character's "feet" for clear visibility
 ════════════════════════════════════════════════════════ */
 
-let drag = { active: false, el: null, id: null, svg: null, startX: 0, startY: 0 };
+let drag = { active: false, el: null, id: null, svg: null, startX: 0, startY: 0, hasMoved: false };
 
 function svgPt(svg, clientX, clientY) {
   const pt = svg.createSVGPoint();
@@ -194,42 +194,53 @@ function getCharPos(el) {
 
 function attachCharDrag(charEl, svg) {
   charEl.addEventListener('pointerdown', e => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (drag.active) return; // only one drag at a time
+    if (drag.active) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // only left-click
+    e.stopPropagation(); // prevent scene swipe from starting
 
     charEl.setPointerCapture(e.pointerId);
-    drag = { active: true, el: charEl, id: e.pointerId, svg, startX: e.clientX, startY: e.clientY };
+    drag = { active: true, el: charEl, id: e.pointerId, svg,
+             startX: e.clientX, startY: e.clientY, hasMoved: false };
     charEl.classList.add('held');
-
-    // Bring to front within the char layer
-    const layer = charEl.closest('#scene-chars, g[id="scene-characters"]') || charEl.parentElement;
-    layer.appendChild(charEl);
-  }, { passive: false });
+    if (charEl.parentElement) charEl.parentElement.appendChild(charEl);
+  });
 
   charEl.addEventListener('pointermove', e => {
-    if (!drag.active || e.pointerId !== drag.id) return;
-    e.preventDefault();
+    // CRITICAL: check drag.el === charEl so only the grabbed char responds,
+    // not every char the cursor passes over
+    if (!drag.active || drag.el !== charEl || e.pointerId !== drag.id) return;
+    // Mouse stuck-drag recovery: button released outside browser window
+    if (e.pointerType === 'mouse' && e.buttons === 0) { endDrag(charEl, false); return; }
+
+    const dx = Math.abs(e.clientX - drag.startX);
+    const dy = Math.abs(e.clientY - drag.startY);
+    if (!drag.hasMoved && dx < 6 && dy < 6) return; // dead zone — tap, not drag
+    drag.hasMoved = true;
 
     const p = svgPt(svg, e.clientX, e.clientY);
     const sc = getCharScale(charEl);
-    // Position so finger is at feet (100px wide char, feet ~150px deep at scale 1)
-    const cx = p.x - 50 * sc;
-    const cy = p.y - 150 * sc;
-    setCharPos(charEl, cx, cy);
-  }, { passive: false });
+    setCharPos(charEl, p.x - 50 * sc, p.y - 150 * sc);
+  });
 
   charEl.addEventListener('pointerup', e => {
-    if (!drag.active || e.pointerId !== drag.id) return;
-    const moved = Math.abs(e.clientX - drag.startX) > 8 ||
-                  Math.abs(e.clientY - drag.startY) > 8;
-    endDrag(charEl, moved, e.clientX, e.clientY);
+    if (!drag.active || drag.el !== charEl || e.pointerId !== drag.id) return;
+    endDrag(charEl, drag.hasMoved, e.clientX, e.clientY);
   });
 
   charEl.addEventListener('pointercancel', e => {
-    if (drag.active && e.pointerId === drag.id) endDrag(charEl, false);
+    if (drag.active && drag.el === charEl && e.pointerId === drag.id) endDrag(charEl, false);
   });
 }
+
+/* Global safety net: catches pointerup/cancel that slip through (e.g. pointer left window) */
+document.addEventListener('pointerup', e => {
+  if (drag.active && e.pointerId === drag.id && drag.el) {
+    endDrag(drag.el, drag.hasMoved, e.clientX, e.clientY);
+  }
+}, { capture: true });
+document.addEventListener('pointercancel', e => {
+  if (drag.active && e.pointerId === drag.id && drag.el) endDrag(drag.el, false);
+}, { capture: true });
 
 function endDrag(charEl, moved, clientX, clientY) {
   drag.active = false;
