@@ -2,101 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Vondráček Family World 🏠</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════ TITLE SCREEN -->
-  <div id="title-screen">
-    <div class="title-bg-circles">
-      <div class="tc c1"></div><div class="tc c2"></div>
-      <div class="tc c3"></div><div class="tc c4"></div>
-    </div>
-    <div class="title-stars" id="title-stars"></div>
+<!-- ═══ TITLE SCREEN ═══ -->
+<div id="title-screen">
+  <div class="title-bg-circles">
+    <div class="tc c1"></div><div class="tc c2"></div>
+    <div class="tc c3"></div><div class="tc c4"></div>
+  </div>
+  <div id="title-stars"></div>
 
-    <div class="title-center">
-      <div class="title-house">🏡</div>
-      <h1 class="title-heading">
-        <span class="title-line1">Vondráček</span>
-        <span class="title-line2">Family World</span>
-      </h1>
-      <p class="title-sub">A magical world made just for us ✨</p>
-      <button id="btn-start" class="btn-play">Let's Play!</button>
-    </div>
-
-    <div class="title-characters" id="title-chars"></div>
+  <div class="title-center">
+    <div class="title-house">🏡</div>
+    <h1 class="title-heading">
+      <span class="title-line1">Vondráček</span>
+      <span class="title-line2">Family World</span>
+    </h1>
+    <p class="title-sub">A magical world made just for us ✨</p>
+    <button id="btn-start">Let's Play!</button>
   </div>
 
-  <!-- ═══════════════════════════════════════════ MAIN GAME -->
-  <div id="game" class="hidden">
+  <div id="title-chars"></div>
+</div>
 
-    <!-- Top header bar -->
-    <header id="game-header">
-      <button class="hdr-btn" id="btn-home" title="Home">🏠</button>
-      <span id="scene-title">Living Room</span>
-      <div class="hdr-right">
-        <button class="hdr-btn" id="btn-save" title="Save">💾</button>
-        <button class="hdr-btn" id="btn-export" title="Download backup">📦</button>
-        <button class="hdr-btn" id="btn-import" title="Load backup">📂</button>
-      </div>
-    </header>
+<!-- ═══ GAME WORLD ═══ -->
+<div id="world" class="hidden">
 
-    <!-- Game body -->
-    <div id="game-body">
+  <!-- Scene rail: all 5 scenes side-by-side, swipe to navigate -->
+  <div id="scene-rail">
+    <div class="scene-panel" data-scene="living-room"  data-bg="#FDEFD8"></div>
+    <div class="scene-panel" data-scene="kitchen"      data-bg="#E8F5E9"></div>
+    <div class="scene-panel" data-scene="garden"       data-bg="#87CEEB"></div>
+    <div class="scene-panel" data-scene="bedroom"      data-bg="#EDE7F6"></div>
+    <div class="scene-panel" data-scene="art-studio"   data-bg="#FFF8E1"></div>
+  </div>
 
-      <!-- Scene viewport -->
-      <div id="scene-wrap">
-        <svg id="scene-svg" xmlns="http://www.w3.org/2000/svg"
-             viewBox="0 0 1100 620" preserveAspectRatio="xMidYMid meet">
-          <defs id="scene-defs"></defs>
-          <g id="scene-bg"></g>
-          <g id="scene-objects"></g>
-          <g id="scene-characters"></g>
-          <g id="scene-fg"></g>
-          <g id="scene-ui"></g>
-        </svg>
-      </div>
+  <!-- Minimal HUD — floats over everything -->
+  <div id="hud">
+    <!-- Scene name — fades in/out on scene switch -->
+    <div id="scene-label"></div>
 
-      <!-- Character tray -->
-      <aside id="char-tray">
-        <div class="tray-label">Family 👨‍👩‍👧‍👦</div>
-        <div id="char-list"></div>
-      </aside>
-
+    <!-- Navigation dots -->
+    <div id="scene-dots">
+      <span class="dot" data-idx="0"></span>
+      <span class="dot" data-idx="1"></span>
+      <span class="dot" data-idx="2"></span>
+      <span class="dot" data-idx="3"></span>
+      <span class="dot" data-idx="4"></span>
     </div>
 
-    <!-- Scene navigation bar -->
-    <nav id="scene-nav">
-      <button class="snav-btn active" data-scene="living-room">🛋️<span>Living Room</span></button>
-      <button class="snav-btn" data-scene="kitchen">🍳<span>Kitchen</span></button>
-      <button class="snav-btn" data-scene="garden">🌸<span>Garden</span></button>
-      <button class="snav-btn" data-scene="bedroom">🛏️<span>Bedroom</span></button>
-      <button class="snav-btn" data-scene="art-studio">🎨<span>Art Studio</span></button>
-    </nav>
+    <!-- Cast button: open character picker -->
+    <button id="btn-cast" title="Family">👥</button>
 
+    <!-- Menu button -->
+    <button id="btn-menu" title="Menu">⚙️</button>
   </div>
 
-  <!-- ═══════════════════════════════════════════ OVERLAYS -->
-
-  <!-- Interaction bubble -->
-  <div id="interact-bubble" class="hidden">
-    <div id="bubble-content"></div>
+  <!-- Character picker drawer (slides up) -->
+  <div id="cast-drawer">
+    <div class="drawer-handle"></div>
+    <p class="drawer-title">Family 👨‍👩‍👧‍👦</p>
+    <div id="cast-list"></div>
   </div>
 
-  <!-- Toast notification -->
+  <!-- Menu drawer (slides up) -->
+  <div id="menu-drawer">
+    <div class="drawer-handle"></div>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="btn-save">💾 Save</button>
+      <button class="menu-btn" id="btn-export">📦 Backup</button>
+      <button class="menu-btn" id="btn-import">📂 Load</button>
+      <button class="menu-btn" id="btn-home">🏠 Title</button>
+    </div>
+  </div>
+
+  <!-- Speech bubble (shown on character tap) -->
+  <div id="speech-bubble" class="hidden"><span id="bubble-text"></span></div>
+
+  <!-- Toast -->
   <div id="toast" class="hidden"></div>
+</div>
 
-  <!-- Hidden file input for import -->
-  <input type="file" id="file-import" accept=".json" style="display:none">
+<input type="file" id="file-import" accept=".json" style="display:none">
 
-  <!-- ═══════════════════════════════════════════ SCRIPTS -->
-  <script src="js/characters.js"></script>
-  <script src="js/scenes.js"></script>
-  <script src="js/engine.js"></script>
-  <script src="js/main.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
