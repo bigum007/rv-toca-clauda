@@ -31,6 +31,7 @@ let state = {
   sceneIdx: 0,
   chars: JSON.parse(JSON.stringify(DEFAULT_CHARS)), // deep copy
   objStates: {}, // {sceneId: {objId: value}}
+  panX: [],      // per-scene horizontal pan offset in SVG units
 };
 
 function saveStateQuiet() {
@@ -43,13 +44,12 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw);
-      // Merge to add any new characters not in saved state
       const savedIds = new Set(saved.chars.map(c => c.id));
       const merged = saved.chars.slice();
       DEFAULT_CHARS.forEach(dc => {
         if (!savedIds.has(dc.id)) merged.push(JSON.parse(JSON.stringify(dc)));
       });
-      state = { ...saved, chars: merged };
+      state = { panX: [], ...saved, chars: merged };
     }
   } catch(e) {}
 }
@@ -78,6 +78,48 @@ function importState(file) {
 }
 
 /* ════════════════════════════════════════════════════════
+   ROOM PANNING — per-scene viewBox pan in SVG units
+════════════════════════════════════════════════════════ */
+
+const SVG_W = 1100, SVG_H = 620;
+
+function visibleSVGWidth() {
+  // Height fills viewport in portrait → visible SVG width is narrower than SVG_W
+  const w = window.innerWidth * SVG_H / window.innerHeight;
+  return Math.min(SVG_W, w);
+}
+
+function maxPanX() {
+  return Math.max(0, SVG_W - visibleSVGWidth());
+}
+
+function centerPanX() {
+  return maxPanX() / 2; // same view as old xMidYMid slice
+}
+
+function getPanX(idx) {
+  const p = state.panX[idx];
+  return (p !== undefined && p !== null) ? p : centerPanX();
+}
+
+function applyPanX(idx, panX) {
+  const clamped = Math.max(0, Math.min(maxPanX(), panX));
+  state.panX[idx] = clamped;
+  const panel = document.querySelectorAll('.scene-panel')[idx];
+  const svg   = panel && panel.querySelector('.scene-svg');
+  if (svg) {
+    svg.setAttribute('viewBox', `${clamped} 0 ${visibleSVGWidth()} ${SVG_H}`);
+    svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+  }
+  return clamped;
+}
+
+window.addEventListener('resize', () => {
+  // Re-apply pan when viewport changes (rotation, resize)
+  applyPanX(currentSceneIdx, getPanX(currentSceneIdx));
+});
+
+/* ════════════════════════════════════════════════════════
    SCENE RAIL — swipe + programmatic navigation
 ════════════════════════════════════════════════════════ */
 
@@ -91,6 +133,8 @@ function goToScene(idx) {
 
   const rail = document.getElementById('scene-rail');
   rail.style.transform = `translateX(calc(${-idx} * 100vw))`;
+
+  applyPanX(idx, getPanX(idx)); // restore this scene's pan position
 
   updateDots(idx);
   flashLabel(SCENES[SCENE_IDS[idx]].label);
@@ -113,51 +157,80 @@ function flashLabel(text) {
 }
 
 /* ════════════════════════════════════════════════════════
-   SWIPE (on scene panel backgrounds — not on characters)
+   SWIPE — pan within room first, switch scene at edge
 ════════════════════════════════════════════════════════ */
 
-let swipe = { active: false, startX: 0, startY: 0, startTime: 0, id: null };
+let swipe = { active: false, startX: 0, startY: 0, startTime: 0, id: null, startPanX: 0 };
 
 function setupSceneSwipe() {
   const rail = document.getElementById('scene-rail');
 
   rail.addEventListener('pointerdown', e => {
-    // Ignore if touch started on a character or interactive obj
     if (e.target.closest('.scene-char') || e.target.closest('.scene-obj')) return;
-    swipe = { active: true, startX: e.clientX, startY: e.clientY,
-              startTime: Date.now(), id: e.pointerId };
+    swipe = {
+      active: true, startX: e.clientX, startY: e.clientY,
+      startTime: Date.now(), id: e.pointerId,
+      startPanX: getPanX(currentSceneIdx)
+    };
     rail.setPointerCapture(e.pointerId);
   }, { passive: true });
 
   rail.addEventListener('pointermove', e => {
     if (!swipe.active || e.pointerId !== swipe.id) return;
-    const dx = e.clientX - swipe.startX;
-    // Live rubber-band preview (capped)
-    const preview = dx * 0.35;
-    rail.style.transform =
-      `translateX(calc(${-currentSceneIdx} * 100vw + ${preview}px))`;
+    const dx = e.clientX - swipe.startX; // screen px, positive = dragging right
+    const vw = visibleSVGWidth();
+    // Convert screen px → SVG units (1 screen px = vw / viewportWidth SVG units)
+    const svgPerPx = vw / window.innerWidth;
+    const newPanX  = swipe.startPanX - dx * svgPerPx;
+    const maxP     = maxPanX();
+
+    if (newPanX >= 0 && newPanX <= maxP) {
+      // Still within room — pan the viewBox live
+      const panel = document.querySelectorAll('.scene-panel')[currentSceneIdx];
+      const svg   = panel && panel.querySelector('.scene-svg');
+      if (svg) svg.setAttribute('viewBox', `${newPanX} 0 ${vw} ${SVG_H}`);
+      rail.style.transform = `translateX(calc(${-currentSceneIdx} * 100vw))`;
+    } else {
+      // Past room edge — rubber-band the rail to hint at scene switch
+      const overshootSVG = newPanX < 0 ? -newPanX : newPanX - maxP;
+      const overshootPx  = (overshootSVG / svgPerPx) * 0.35;
+      const dir = dx > 0 ? 1 : -1;
+      rail.style.transform =
+        `translateX(calc(${-currentSceneIdx} * 100vw + ${dir * overshootPx}px))`;
+    }
   }, { passive: true });
 
   rail.addEventListener('pointerup', e => {
     if (!swipe.active || e.pointerId !== swipe.id) return;
     swipe.active = false;
-    const dx = e.clientX - swipe.startX;
-    const dy = Math.abs(e.clientY - swipe.startY);
-    const dt = Date.now() - swipe.startTime;
-    const fast = dt < 300 && Math.abs(dx) > 30;
-    const far  = Math.abs(dx) > window.innerWidth * 0.28;
+
+    const dx   = e.clientX - swipe.startX;
+    const dy   = Math.abs(e.clientY - swipe.startY);
+    const dt   = Date.now() - swipe.startTime;
+    const vw   = visibleSVGWidth();
+    const svgPerPx  = vw / window.innerWidth;
+    const newPanX   = swipe.startPanX - dx * svgPerPx;
+    const maxP      = maxPanX();
+
+    // How far past the room edge are we (in screen px)?
+    const overshootSVG = newPanX < 0 ? -newPanX : (newPanX > maxP ? newPanX - maxP : 0);
+    const overshootPx  = overshootSVG / svgPerPx;
+    const fast = dt < 300 && overshootPx > 30;
+    const far  = overshootPx > window.innerWidth * 0.28;
 
     if ((fast || far) && dy < 100) {
       goToScene(currentSceneIdx + (dx < 0 ? 1 : -1));
     } else {
-      // Snap back
+      applyPanX(currentSceneIdx, newPanX);
       rail.style.transform = `translateX(calc(${-currentSceneIdx} * 100vw))`;
+      saveStateQuiet();
     }
   }, { passive: true });
 
   rail.addEventListener('pointercancel', () => {
     if (!swipe.active) return;
     swipe.active = false;
+    applyPanX(currentSceneIdx, swipe.startPanX);
     rail.style.transform = `translateX(calc(${-currentSceneIdx} * 100vw))`;
   }, { passive: true });
 }
@@ -446,9 +519,11 @@ function onCastItemTap(charId) {
   const cd = state.chars.find(c => c.id === charId);
   if (!cd) return;
 
-  // Move to current scene, center
+  // Place at center of the currently visible view area
+  const panX = getPanX(currentSceneIdx);
   cd.sceneIdx = currentSceneIdx;
-  cd.x = 500; cd.y = 440;
+  cd.x = Math.round(panX + visibleSVGWidth() / 2);
+  cd.y = 440;
 
   const panel = document.querySelectorAll('.scene-panel')[currentSceneIdx];
   placeCharInScene(cd, panel);

@@ -56,11 +56,11 @@ function initScenes() {
     const bg = panel.dataset.bg || '#fff';
     panel.style.background = bg;
 
-    // Create the SVG element
+    // Create the SVG element — viewBox will be updated by applyPanX in goToScene
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('class','scene-svg');
     svg.setAttribute('viewBox','0 0 1100 620');
-    svg.setAttribute('preserveAspectRatio','xMidYMid slice');
+    svg.setAttribute('preserveAspectRatio','xMidYMid slice'); // overridden on navigation
     svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
 
     // Layers
