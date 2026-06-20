@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Vondráček Family World 🏠</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════ TITLE SCREEN -->
+  <div id="title-screen">
+    <div class="title-bg-circles">
+      <div class="tc c1"></div><div class="tc c2"></div>
+      <div class="tc c3"></div><div class="tc c4"></div>
+    </div>
+    <div class="title-stars" id="title-stars"></div>
+
+    <div class="title-center">
+      <div class="title-house">🏡</div>
+      <h1 class="title-heading">
+        <span class="title-line1">Vondráček</span>
+        <span class="title-line2">Family World</span>
+      </h1>
+      <p class="title-sub">A magical world made just for us ✨</p>
+      <button id="btn-start" class="btn-play">Let's Play!</button>
+    </div>
+
+    <div class="title-characters" id="title-chars"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ MAIN GAME -->
+  <div id="game" class="hidden">
+
+    <!-- Top header bar -->
+    <header id="game-header">
+      <button class="hdr-btn" id="btn-home" title="Home">🏠</button>
+      <span id="scene-title">Living Room</span>
+      <div class="hdr-right">
+        <button class="hdr-btn" id="btn-save" title="Save">💾</button>
+        <button class="hdr-btn" id="btn-export" title="Download backup">📦</button>
+        <button class="hdr-btn" id="btn-import" title="Load backup">📂</button>
+      </div>
+    </header>
+
+    <!-- Game body -->
+    <div id="game-body">
+
+      <!-- Scene viewport -->
+      <div id="scene-wrap">
+        <svg id="scene-svg" xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 1100 620" preserveAspectRatio="xMidYMid meet">
+          <defs id="scene-defs"></defs>
+          <g id="scene-bg"></g>
+          <g id="scene-objects"></g>
+          <g id="scene-characters"></g>
+          <g id="scene-fg"></g>
+          <g id="scene-ui"></g>
+        </svg>
+      </div>
+
+      <!-- Character tray -->
+      <aside id="char-tray">
+        <div class="tray-label">Family 👨‍👩‍👧‍👦</div>
+        <div id="char-list"></div>
+      </aside>
+
+    </div>
+
+    <!-- Scene navigation bar -->
+    <nav id="scene-nav">
+      <button class="snav-btn active" data-scene="living-room">🛋️<span>Living Room</span></button>
+      <button class="snav-btn" data-scene="kitchen">🍳<span>Kitchen</span></button>
+      <button class="snav-btn" data-scene="garden">🌸<span>Garden</span></button>
+      <button class="snav-btn" data-scene="bedroom">🛏️<span>Bedroom</span></button>
+      <button class="snav-btn" data-scene="art-studio">🎨<span>Art Studio</span></button>
+    </nav>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════ OVERLAYS -->
+
+  <!-- Interaction bubble -->
+  <div id="interact-bubble" class="hidden">
+    <div id="bubble-content"></div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="file-import" accept=".json" style="display:none">
+
+  <!-- ═══════════════════════════════════════════ SCRIPTS -->
+  <script src="js/characters.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
